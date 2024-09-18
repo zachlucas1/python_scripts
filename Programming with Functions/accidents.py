@@ -1,0 +1,106 @@
+import csv
+
+# Column names from the accidents.csv file.
+YEAR_KEY = "Year"
+FATALITIES_KEY = "Fatalities"
+INJURIES_KEY = "Injuries"
+CRASHES_KEY = "Crashes"
+FATAL_CRASHES_KEY = "Fatal Crashes"
+DISTRACT_KEY = "Distraction Affected Fatal Crashes"
+PHONE_KEY = "Fatal Crashes involving Cell Phone Use"
+SPEED_KEY = "Fatal Crashes involving Excessive Speed"
+DUI_KEY = "Fatal Crashes while Driving under the Influence"
+FATIGUE_KEY = "Fatal Crashes involving Fatigue or Illness"
+
+
+def main():
+    good_input = False
+
+    while not good_input:
+        try:
+            # Prompt the user for a filename and open that text file.
+            filename = input("Name of file that contains NHTSA data: ")
+            print()
+
+            # Open the text file that the user requested.
+            infile = open(filename, "rt")
+
+            good_input = True
+        except FileNotFoundError as ex:
+            print()
+            print(type(ex).__name__, ex, sep=": ")
+            print(f"The file '{filename}' doesn't exist. Please try again.")
+            print('Run the program again and enter the name of an existing file.')
+
+    PercentFile = False
+    while not PercentFile:
+        # Prompt the user for a percentage.
+        try:
+            perc_reduc = float(input("Percent reduction of texting while driving: "))
+            
+            if perc_reduc < 0:
+                print('input is too small')
+
+            if perc_reduc > 100:
+                print('input is too big') 
+
+            else:
+                PercentFile = True
+            print()
+            print(f"With a {perc_reduc}% reduction in using a cell phone while",
+                    "driving, approximately this number of injuries and",
+                    "deaths would have been prevented in the USA.", sep="\n")
+            print()
+            print("Year, Injuries, Deaths")
+
+        except ValueError as ex:
+            print('This is an invalid integer, please try again.')
+
+    # Create a DictReader object to read each line from the CSV
+    # file. This code doesn't include the next(reader) command to
+    # skip the first line of the file because the DictReader object
+    # uses the column headers.
+    reader = csv.DictReader(infile)
+
+    # Process each row in the CSV file.
+    for row in reader:
+        year = row[YEAR_KEY]
+
+        # Call the estimate_reduction function.
+        injur, fatal = estimate_reduction(row, PHONE_KEY, perc_reduc)
+
+        # Print the estimated reductions in injuries and fatalities.
+        print(year, injur, fatal, sep=", ")
+
+    infile.close()
+
+
+def estimate_reduction(row, behavior_key, perc_reduc):
+    """Estimate and return the number of injuries and deaths that would
+    not have occurred on U.S. roads and highways if drivers had reduced
+    a dangerous behavior by a given percentage.
+
+    Parameters
+        row: a CSV row of data from the U.S. National Highway Traffic
+            Safety Administration (NHTSA)
+        behavior_key: heading from the CSV file for the dangerous
+            behavior that drivers could reduce
+        perc_reduc: percent that drivers could reduce a dangerous
+            behavior
+    Return: The number of injuries and deaths that may have been prevented
+    """
+    behavior = int(row[behavior_key])
+    fatal_crashes = int(row[FATAL_CRASHES_KEY])
+    ratio = perc_reduc / 100 * behavior / fatal_crashes
+
+    fatalities = int(row[FATALITIES_KEY])
+    injuries = int(row[INJURIES_KEY])
+
+    reduc_fatal = int(round(fatalities * ratio, 0))
+    reduc_injur = int(round(injuries * ratio, 0))
+    return reduc_injur, reduc_fatal
+
+
+# Call the main function so that
+# this program will start executing.
+main()
